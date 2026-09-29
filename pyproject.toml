@@ -1,0 +1,37 @@
+# Настройки линтера. Проверка: python -m ruff check .
+# ruff format не применяется - код форматирован руками, выравнивание комментариев в столбик значимо.
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = [".", "server"]             # server/app.py импортирует соседний fcm.py как модуль верхнего уровня
+extend-exclude = [
+    "agent",                       # Android-приложение (Kotlin), Python там нет
+    "cf_*.py", "sbcheck.py",       # разовые отладочные скрипты - в публичную копию не идут (tools/make_public.py)
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# настройки в столбик: «поле = QSpinBox(); поле.setRange(...); поле.setValue(...)» - одна строка на поле
+"stand/ui/dialogs.py" = ["E702"]
+# выдача dumpsys и uiautomator с телефона вставлена как есть - строки резать нельзя
+"tests/test_parsers.py" = ["E501"]
+# справка - HTML-текст, перенос внутри абзаца ничего не даёт
+"stand/ui/help.py" = ["E501"]
+
+# Проверка безопасности: python -m bandit -c pyproject.toml -r .
+# Пропуски разобраны вручную (аудит безопасности, круг 3):
+#   B101 assert, B110 try/except/pass - осознанные;
+#   B404/B603/B606/B607 subprocess со списком аргументов (git, adb, xray, scrcpy) без shell, os.startfile своей папки;
+#   B601 paramiko exec_command - пробник ДЦ выполняет свои команды, значения экранируются shell_quote;
+#   B108 /tmp - пути на удалённом сервере (mktemp) и в PrivateTmp;
+#   B310 urlopen - адреса фиксированные или проверены на http(s);
+#   B311 random - демо-данные и разброс интервалов, не криптография;
+#   B105 - демо-токен и имена полей, не пароли;
+#   B323 - непроверяемый TLS только по явной галочке в «Подключениях»;
+#   B608 - в SQL подставляются только имена таблиц из констант, значения - параметрами.
+[tool.bandit]
+exclude_dirs = ["tests", "agent", "venv", ".venv", "build", "bin", "__pycache__", "cf_debug.py", "cf_probe.py", "sbcheck.py"]
+skips = ["B101", "B110", "B404", "B603", "B606", "B607", "B601", "B108", "B310", "B311", "B105", "B323", "B608"]

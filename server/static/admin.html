@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1319">
+<title data-tr>VPNCheck · центр</title>
+<style>
+  :root { --bg:#0e1319; --panel:#161d26; --panel2:#1d2733; --border:#283340; --field:#627186; --text:#e6edf3; --muted:#8a97a6;
+          --accent:#3b82f6; --accent-dark:#2563eb; --accent-darker:#1d4ed8; --green:#22c55e; --red:#ef4444; --red-text:#f87171; --amber:#f59e0b; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system, "Segoe UI", sans-serif; font-size:15px; }
+  header { position:sticky; top:0; z-index:5; background:rgba(14,19,25,0.92); backdrop-filter:blur(8px); padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;
+           border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+  header b { font-size:17px; } header .st { color:var(--muted); font-size:12px; margin-left:auto; }
+  nav { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; }
+  nav button { min-height:44px; padding:7px 10px; border:1px solid var(--border); border-radius:10px; background:transparent;
+               color:var(--muted); white-space:nowrap; font-size:13px; }
+  nav button.on { background:var(--panel2); color:var(--text); border-color:var(--accent); }
+  section { display:none; padding:6px 12px 24px; } section.on { display:block; }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  input { background:var(--bg); border:1px solid var(--field); border-radius:10px; padding:10px 12px; color:var(--text); font-size:15px; flex:1; min-width:0; }
+  button { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:15px; min-height:44px; }
+  button.primary { background:var(--accent-dark); border-color:var(--accent-dark); color:#fff; font-weight:600; }
+  button.primary:hover { background:var(--accent-darker); border-color:var(--accent-darker); }
+  button:disabled { opacity:0.6; }
+  #notice { display:none; margin:0 0 8px; padding:10px 12px; border-radius:10px; font-size:14px; border:1px solid var(--green); background:#14301f; color:var(--green); }
+  #notice.bad { border-color:var(--red); background:#3a1a1c; color:var(--red-text); }
+  #notice.on { display:block; }
+  .chip { display:inline-block; padding:4px 10px; border-radius:10px; border:1px solid var(--border); background:var(--panel2); font-size:13px; margin:2px 4px 2px 0; }
+  .chip.g { color:var(--green); border-color:var(--green); background:#14301f; } .chip.b { color:#93c5fd; border-color:var(--accent); background:#172a4a; }
+  #map { height:52vh; border-radius:12px; overflow:hidden; border:1px solid var(--border); }
+  .agent { display:flex; justify-content:space-between; gap:8px; padding:10px 0; border-bottom:1px solid #1f2933; }
+  .agent:last-child { border-bottom:none; }
+  .agent .n { font-weight:600; } .agent .m { color:var(--muted); font-size:13px; }
+  .ok { color:var(--green); font-weight:600; } .bad { color:var(--red-text); font-weight:600; } .mid { color:var(--amber); font-weight:600; } .dim { color:var(--muted); }
+  table { border-collapse:collapse; width:100%; font-size:13px; } th, td { padding:6px 8px; border-bottom:1px solid #1f2933; text-align:left; white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--panel); }
+  .scroll { overflow:auto; max-height:70vh; }
+  .err { padding:8px 0; border-bottom:1px solid #1f2933; font-size:13px; } .err .t { color:var(--muted); } .err pre { white-space:pre-wrap; margin:4px 0 0; font-size:12px; color:#c9d4df; }
+  #login { padding:40px 16px; }
+  #bar { padding:0 12px; }
+  td small { font-size:10px; font-weight:600; color:var(--amber); border:1px solid var(--amber); border-radius:4px; padding:0 3px; margin-left:4px; }
+  .legend { font-size:12px; padding:8px 8px 0; white-space:normal; }
+</style>
+</head>
+<body>
+<header><b>VPNCheck</b><span class="st" id="status">…</span></header>
+<div id="login" class="card" style="margin:14px 12px">
+  <div style="margin-bottom:8px" data-tr>Админ-токен: его напечатал установщик сервера, на компьютере со стендом он в %APPDATA%\VPNCheckStand\agent.json; на сервере - /opt/vpnagent/admin_token</div>
+  <div class="row"><input id="token" placeholder="токен" type="password"><button class="primary" id="loginBtn" data-tr>Войти</button></div>
+</div>
+<div id="app" style="display:none">
+  <nav><button type="button" class="on" data-s="map" data-tr>Карта</button><button type="button" data-s="agents" data-tr>Агенты</button><button type="button" data-s="matrix" data-tr>Матрица</button><button type="button" data-s="sites" data-tr>Сайты</button><button type="button" data-s="errors" data-tr>Ошибки</button></nav>
+  <div id="bar">
+    <div id="notice" role="status"></div>
+    <div class="row" style="margin-bottom:8px"><span id="chips"></span><button class="primary" id="runBtn" style="margin-left:auto" data-tr>▶ Проверить всех</button><button id="updateBtn" data-tr>⬆ Обновить агентов</button></div>
+  </div>
+  <section id="s-map" class="on">
+    <div id="map"></div>
+  </section>
+  <section id="s-agents"><div class="card" id="agents"></div></section>
+  <section id="s-matrix"><div class="card scroll" id="matrix"></div></section>
+  <section id="s-sites"><div class="card scroll" id="sitesm"></div></section>
+  <section id="s-errors"><div class="card" id="errors"></div></section>
+</div>
+<script src="/static/admin.js"></script>
+</body>
+</html>

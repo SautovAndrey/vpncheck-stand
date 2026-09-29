@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Карта агентов (Яндекс)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0e1319; overflow: hidden; font-family: "Segoe UI", sans-serif; }
+  #map { position: absolute; inset: 0; }
+  #legend { position: absolute; left: 12px; bottom: 30px; z-index: 500; color: #8a97a6; font-size: 11px;
+            background: rgba(14,19,25,0.85); padding: 6px 10px; border-radius: 8px; border: 1px solid #283340; user-select: none; }
+  #legend b { color: #e6edf3; font-weight: 600; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 5px 0 0; }
+  #legend { max-width: calc(100% - 200px); line-height: 18px; }
+  #legend .item { display: inline-block; white-space: nowrap; margin-left: 12px; }
+  @media (max-width: 800px) {
+    #legend { bottom: 64px; max-width: calc(100% - 24px); }
+  }
+  #buttons { position: absolute; right: 12px; bottom: 30px; z-index: 500; display: flex; gap: 6px; }
+  #buttons div { background: #1d2733; color: #c9d4df; border: 1px solid #283340; border-radius: 8px; padding: 4px 10px;
+                 font-size: 11px; cursor: pointer; user-select: none; }
+  #buttons div.on { background: #24344d; color: #93c5fd; border-color: #3b82f6; }
+  #err { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; color: #8a97a6; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="err">Яндекс Карты не загрузились - нет интернета или ключ не принят</div>
+<div id="legend"><b id="count"></b>
+  <span class="item"><span class="dot" style="background:#22c55e"></span>VPN работает</span>
+  <span class="item"><span class="dot" style="background:#f59e0b"></span>часть узлов</span>
+  <span class="item"><span class="dot" style="background:#ef4444"></span>VPN режут</span>
+  <span class="item"><span class="dot" style="background:#93c5fd"></span>нет данных</span>
+  <span class="item"><span class="dot" style="background:#5b6772"></span>молчит &gt; 12 ч</span>
+</div>
+<div id="buttons"><div id="btnRegions" class="on">Регионы</div><div id="btnHome">Россия</div></div>
+<script>
+const LANG = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "ru";
+const EN = { "VPN работает": "VPN works", "часть узлов": "some nodes", "VPN режут": "VPN blocked",
+  "нет данных": "no data", "молчит > 12 ч": "silent > 12 h", "Регионы": "Regions", "Подложка": "Base map",
+  "Россия": "Russia", "Тёмная": "Dark", "Улицы": "Streets", "Светлая": "Light", "Спутник": "Satellite",
+  "Яндекс Карты не загрузились - нет интернета или ключ не принят": "Yandex Maps failed to load - no internet or the key was rejected" };
+const tr = (s) => LANG === "en" ? (EN[s] || s) : s;
+const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ESC[c]);
+if (LANG === "en") {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let node; (node = walker.nextNode());) {
+    const text = node.nodeValue.trim();
+    if (EN[text]) node.nodeValue = node.nodeValue.replace(text, EN[text]);
+  }
+}
+const regionName = (p) => LANG === "en" ? (p.name || p.name_ru) : (p.name_ru || p.name);
+const agentCount = (n) => LANG === "en" ? n + (n === 1 ? " agent" : " agents") : n + " " + plural(n, ["агент", "агента", "агентов"]);
+
+const KEY = new URLSearchParams(location.search).get("key") || "";
+let map = null, regionsGeo = null, regionShapes = [], agents = [], markers = [], regionsOn = true;
+const pending = [];
+
+const script = document.createElement("script");
+script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(KEY)}&lang=${LANG === "en" ? "en_US" : "ru_RU"}&coordorder=longlat`;
+script.onerror = () => { document.getElementById("err").style.display = "flex"; };
+document.head.appendChild(script);
+script.onload = () => ymaps.ready(() => {
+  map = new ymaps.Map("map", { center: [60, 58], zoom: 4, controls: ["zoomControl", "typeSelector", "fullscreenControl"] },
+                      { suppressMapOpenBlock: true });
+  pending.forEach(fn => fn()); pending.length = 0;
+});
+const when = (fn) => map ? fn() : pending.push(fn);
+
+function colorFor(a) {
+  if (a.stale) return "#5b6772";
+  if (!a.total) return "#93c5fd";
+  if (a.alive === a.total) return "#22c55e";
+  if (a.alive === 0) return "#ef4444";
+  return "#f59e0b";
+}
+function inRing(pt, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if (((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+function inFeature(pt, f) {
+  const g = f.geometry, polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+  for (const poly of polys) if (inRing(pt, poly[0]) && !poly.slice(1).some(h => inRing(pt, h))) return true;
+  return false;
+}
+function regionStats() {
+  const stats = new Map();
+  if (!regionsGeo) return stats;
+  for (const a of agents) {
+    if (a.lat == null || a.lon == null || a.stale) continue;
+    const f = regionsGeo.features.find(f => inFeature([a.lon, a.lat], f));
+    if (!f) continue;
+    const s = stats.get(f) || { agents: 0, alive: 0, total: 0, ops: new Set() };
+    s.agents++; s.alive += a.alive || 0; s.total += a.total || 0; if (a.operator) s.ops.add(a.operator);
+    stats.set(f, s);
+  }
+  return stats;
+}
+function drawRegions() {
+  regionShapes.forEach(s => map.geoObjects.remove(s)); regionShapes = [];
+  if (!regionsGeo || !regionsOn) return;
+  const stats = regionStats();
+  for (const f of regionsGeo.features) {
+    const s = stats.get(f);
+    let fill = "#3b82f6", opacity = 0.06;
+    if (s && s.total) { const r = s.alive / s.total; fill = r >= 0.8 ? "#22c55e" : r === 0 ? "#ef4444" : "#f59e0b"; opacity = 0.35; }
+    else if (s) { fill = "#93c5fd"; opacity = 0.25; }
+    const name = regionName(f.properties);
+    const hint = !s ? name : LANG === "en" ? `${name}: agents ${s.agents}, alive ${s.alive} of ${s.total} (${[...s.ops].join(", ")})`
+      : `${name}: агентов ${s.agents}, живых ${s.alive} из ${s.total} (${[...s.ops].join(", ")})`;
+    const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys) {
+      const shape = new ymaps.Polygon(poly, { hintContent: esc(hint) },
+        { fillColor: fill, fillOpacity: opacity, strokeColor: s ? fill : "#3b5a80", strokeWidth: s ? 1.5 : 0.7, strokeOpacity: s ? 0.9 : 0.5 });
+      map.geoObjects.add(shape); regionShapes.push(shape);
+    }
+  }
+}
+function drawAgents() {
+  markers.forEach(m => map.geoObjects.remove(m)); markers = [];
+  for (const a of agents) {
+    if (a.lat == null || a.lon == null) continue;
+    const text = esc(a.tip || a.label).replace(/\n/g, "<br>");
+    const pm = new ymaps.Placemark([a.lon, a.lat], { hintContent: text, balloonContent: text },
+      { preset: "islands#circleDotIcon", iconColor: colorFor(a) });
+    map.geoObjects.add(pm); markers.push(pm);
+  }
+  document.getElementById("count").textContent = agentCount(agents.length);
+}
+function plural(n, f) { const m = n % 10, h = n % 100; return f[(m === 1 && h !== 11) ? 0 : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? 1 : 2]; }
+document.getElementById("count").textContent = agentCount(0);
+
+document.getElementById("btnHome").onclick = () => when(() => map.setCenter([60, 58], 4));
+document.getElementById("btnRegions").onclick = (e) => { regionsOn = !regionsOn; e.target.classList.toggle("on", regionsOn); when(drawRegions); };
+
+window.setWorld = () => {};
+window.setRegions = (geo) => { regionsGeo = geo; when(drawRegions); };
+window.setAgents = (list) => { agents = list; when(() => { drawAgents(); drawRegions(); }); };
+window.focusOn = (lon, lat, zoom) => when(() => map.setCenter([lon, lat], zoom ? Math.max(6, Math.round(zoom + 3)) : 8, { duration: 300 }));
+</script>
+</body>
+</html>

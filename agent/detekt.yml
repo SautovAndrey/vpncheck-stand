@@ -1,0 +1,59 @@
+complexity:
+  CyclomaticComplexMethod:
+    threshold: 25
+    ignoreSimpleWhenEntries: true
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+    ignoreDefaultParameters: true
+  NestedBlockDepth:
+    threshold: 5
+  ComplexCondition:
+    threshold: 6
+  TooManyFunctions:
+    active: false
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  ThrowsCount:
+    max: 3
+  UnusedParameter:
+    active: true
+  UnusedPrivateMember:
+    active: true
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  InstanceOfCheckForException:
+    active: false
+  SwallowedException:
+    active: false
+  ThrowingExceptionsWithoutMessageOrCause:
+    active: true
+empty-blocks:
+  EmptyCatchBlock:
+    active: true
+    allowedExceptionNameRegex: '(ignore|expected).*'
+potential-bugs:
+  UnsafeCallOnNullableType:
+    active: true
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+  CastNullableToNonNullableType:
+    active: true
+coroutines:
+  active: true
+  SleepInsteadOfDelay:
+    active: true
+  GlobalCoroutineUsage:
+    active: true
+  InjectDispatcher:
+    active: false

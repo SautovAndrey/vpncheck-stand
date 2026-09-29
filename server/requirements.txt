@@ -1,0 +1,5 @@
+# Сервер агентов: ставит server/install.sh (или server/deploy.py по SSH)
+fastapi>=0.110
+uvicorn[standard]>=0.29,<0.55
+python-multipart>=0.0.9
+cryptography>=46.0.7
