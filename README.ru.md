@@ -641,4 +641,4 @@ cd agent && ./gradlew detekt          # проверка Kotlin-кода аге�
 
 ---
 
-По вопросам VPN, серверов для обхода блокировок и консультаций - пишите в Telegram: https://t.me/joodjoy.
+По вопросам обхода белых списков и настройки VPN - пишите в Telegram: https://t.me/joodjoy.

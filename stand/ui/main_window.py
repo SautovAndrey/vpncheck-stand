@@ -1772,7 +1772,7 @@ class MainWindow(QMainWindow):
                                   "телефонов проверяются одновременно.\n\n"
                                   "Проверка из ДЦ - со своего сервера по SSH (Файл → Подключения).\n\n"
                                   "Как подключить новый телефон - в меню «Справка».")).replace("\n", "<br>")
-        contact = t("По вопросам VPN, серверов для обхода блокировок и консультаций - пишите в Telegram:")
+        contact = t("По вопросам обхода белых списков и настройки VPN - пишите в Telegram:")
         box = QMessageBox(QMessageBox.Information, t("О программе"), "", QMessageBox.Ok, self)
         box.setTextFormat(Qt.RichText)
         box.setTextInteractionFlags(Qt.TextBrowserInteraction)

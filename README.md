@@ -644,4 +644,4 @@ unused. The server keeps its few English strings in `server/app.py`; the agent u
 
 ---
 
-VPN servers for bypassing blocks, setup and consulting - message me on Telegram: https://t.me/joodjoy.
+Getting around mobile whitelists and VPN setup - message me on Telegram: https://t.me/joodjoy.
