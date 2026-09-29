@@ -1,5 +1,7 @@
 # VPNCheck Stand
 
+[![Stars](https://img.shields.io/github/stars/SautovAndrey/vpncheck-stand?style=flat)](https://github.com/SautovAndrey/vpncheck-stand/stargazers) [![License: MIT](https://img.shields.io/github/license/SautovAndrey/vpncheck-stand)](LICENSE) [![Last commit](https://img.shields.io/github/last-commit/SautovAndrey/vpncheck-stand)](https://github.com/SautovAndrey/vpncheck-stand/commits/main) ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue) ![Android 8+](https://img.shields.io/badge/android-8.0%2B-3ddc84) ![Windows](https://img.shields.io/badge/stand-Windows%2010%2F11-0078d6) ![Views](https://visitor-badge.laobi.icu/badge?page_id=SautovAndrey.vpncheck-stand)
+
 [English version](README.md)
 
 **VPNCheck Stand проверяет, открываются ли ваши VPN-узлы из настоящих сетей** - с SIM-карт разных операторов,
