@@ -458,6 +458,19 @@ def skip_label(outbound, extra, refusal):
     return "vless+dialerProxy"
 
 
+def node_sni(outbound, address):
+    """SNI, с которым xray идёт к узлу: serverName из reality или tls; у tls без serverName - сам адрес узла."""
+    stream = outbound.get("streamSettings")
+    stream = stream if isinstance(stream, dict) else {}
+    security = str(stream.get("security") or "").lower()
+    for section in ("realitySettings", "tlsSettings"):
+        settings = stream.get(section)
+        name = settings.get("serverName") if isinstance(settings, dict) else None
+        if isinstance(name, str) and name:
+            return name
+    return address if security == "tls" else None
+
+
 def parse_subscription(raw, only_443=True, location_filter=None, skipped=None):
     """Узлы VLESS из JSON-подписки. skipped (список) - сюда узлы, которые не проверить: цепочка dialerProxy
     ссылается на то, чего в конфиге нет, замкнута в кольцо или агент её не поднимет, канал загрузки xhttp
@@ -487,9 +500,7 @@ def parse_subscription(raw, only_443=True, location_filter=None, skipped=None):
                     "address": address,
                     "port": port,
                     "key": "%s:%s" % (address, port),
-                    "sni": (single.get("streamSettings", {})
-                                  .get("realitySettings", {})
-                                  .get("serverName")),
+                    "sni": node_sni(single, address),
                     "outbound": single,
                 }
                 extra = extra_outbounds(single, outbounds) if linked_tags(single) else []

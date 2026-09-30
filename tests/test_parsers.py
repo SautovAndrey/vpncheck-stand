@@ -313,3 +313,17 @@ class SmsAndUssdTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NodeSniTest(unittest.TestCase):
+    def test_sni_from_reality_tls_or_address(self):
+        from stand.core import node_sni
+        reality = {"streamSettings": {"security": "reality", "realitySettings": {"serverName": "apple.com"}}}
+        tls_named = {"streamSettings": {"security": "tls", "tlsSettings": {"serverName": "cdn.example.org"}}}
+        tls_bare = {"streamSettings": {"security": "tls", "tlsSettings": {}}}
+        plain = {"streamSettings": {"security": "none"}}
+        self.assertEqual(node_sni(reality, "node.example.org"), "apple.com")
+        self.assertEqual(node_sni(tls_named, "node.example.org"), "cdn.example.org")
+        self.assertEqual(node_sni(tls_bare, "node.example.org"), "node.example.org")
+        self.assertIsNone(node_sni(plain, "node.example.org"))
+        self.assertIsNone(node_sni({}, "node.example.org"))
